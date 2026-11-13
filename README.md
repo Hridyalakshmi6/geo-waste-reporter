@@ -1,16 +1,68 @@
-# React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Geo-Waste Reporter
 
-Currently, two official plugins are available:
+A GeoAI-powered platform for reporting and monitoring illegal waste dumping.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## About the Project
 
-## React Compiler
+Geo-Waste Reporter aims to help citizens report illegal waste dumping through photographs and automatic GPS location detection.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The platform stores submitted reports and their associated location information, allowing administrators to monitor and manage waste incidents.
 
-## Expanding the ESLint configuration
+## Current Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Citizen waste reporting without registration or login.
+- Photograph upload and preview.
+- Automatic GPS location detection.
+- Unique report ID generation.
+- Secure image storage using Supabase Storage.
+- Report metadata storage using Supabase PostgreSQL.
+
+## Technology Stack
+
+- Frontend: React.js
+- Build Tool: Vite
+- Styling: Tailwind CSS
+- Backend Services: Supabase
+- Database: PostgreSQL
+- Storage: Supabase Storage
+
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone YOUR_GITHUB_REPOSITORY_URL
+cd GEO-WASTE-REPORTER
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+Create a `.env.local` file in the project root:
+
+```env
+VITE_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+```
+
+### 4. Start the development server
+
+```bash
+npm run dev
+```
+
+## Project Status
+
+Citizen reporting and Supabase integration are implemented.
+
+Admin dashboard, incident management, interactive mapping, and GeoAI features are planned for subsequent development.
+
+## Security
+
+Never commit `.env.local`, Supabase secret keys, or service role keys to the repository.
