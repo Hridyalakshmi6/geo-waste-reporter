@@ -39,6 +39,7 @@ function AdminDashboard() {
     const [loggingOut, setLoggingOut] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
     const [selectedReport, setSelectedReport] = useState(null);
+    const [selectedHotspot, setSelectedHotspot] = useState(null);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -429,39 +430,15 @@ function AdminDashboard() {
 
                                     <tbody className="divide-y divide-gray-100">
 
-                                        {hotspots.map((hotspot, index) => (
-                                            <tr key={hotspot.id}>
-
-                                                <td className="p-4 font-semibold">
-                                                    #{index + 1}
-                                                </td>
-
-                                                <td className="p-4 text-sm text-gray-700">
-                                                    {hotspot.id}
-                                                </td>
-
-                                                <td className="p-4 font-bold text-gray-900">
-                                                    {hotspot.count}
-                                                </td>
-
-                                                <td className="p-4">
-                                                    <span
-                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${hotspot.severity === "High"
-                                                            ? "bg-red-100 text-red-700"
-                                                            : "bg-amber-100 text-amber-700"
-                                                            }`}
-                                                    >
-                                                        {hotspot.severity}
-                                                    </span>
-                                                </td>
-
-                                                <td className="p-4 text-sm text-gray-600">
-                                                    {hotspot.latitude.toFixed(5)},
-                                                    {" "}
-                                                    {hotspot.longitude.toFixed(5)}
-                                                </td>
-
-                                            </tr>
+                                        {hotspots.map((hotspot) => (
+                                            <tr
+                                                key={hotspot.id}
+                                                onClick={() => setSelectedHotspot(hotspot)}
+                                                className={`cursor-pointer transition-colors ${selectedHotspot?.id === hotspot.id
+                                                    ? "bg-green-50"
+                                                    : "hover:bg-gray-50"
+                                                    }`}
+                                            ></tr>
                                         ))}
 
                                     </tbody>
@@ -473,6 +450,129 @@ function AdminDashboard() {
 
                 </section>
 
+
+                {/* SELECTED HOTSPOT INVESTIGATION */}
+                {selectedHotspot && (
+                    <section className="mb-8 rounded-2xl border border-green-200 bg-white p-6 shadow-sm">
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    Hotspot Investigation
+                                </h2>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Investigating hotspot {selectedHotspot.id}
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setSelectedHotspot(null)}
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            >
+                                Clear Selection
+                            </button>
+
+                        </div>
+
+                        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+
+                            <div className="rounded-xl bg-gray-50 p-4">
+                                <p className="text-sm text-gray-500">
+                                    Total Reports
+                                </p>
+                                <p className="mt-2 text-2xl font-bold text-gray-900">
+                                    {selectedHotspot.count}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-gray-50 p-4">
+                                <p className="text-sm text-gray-500">
+                                    Severity
+                                </p>
+                                <p className={`mt-2 text-2xl font-bold ${selectedHotspot.severity === "High"
+                                    ? "text-red-600"
+                                    : "text-amber-600"
+                                    }`}>
+                                    {selectedHotspot.severity}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-gray-50 p-4">
+                                <p className="text-sm text-gray-500">
+                                    Hotspot Coordinates
+                                </p>
+                                <p className="mt-2 text-sm font-semibold text-gray-900">
+                                    {selectedHotspot.latitude.toFixed(5)},
+                                    {" "}
+                                    {selectedHotspot.longitude.toFixed(5)}
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <h3 className="mb-4 mt-7 text-lg font-bold text-gray-800">
+                            Reports in this Hotspot
+                        </h3>
+
+                        <div className="space-y-3">
+
+                            {selectedHotspot.reports.map((report) => (
+
+                                <div
+                                    key={report.id}
+                                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 p-4"
+                                >
+
+                                    <div className="flex min-w-0 items-center gap-4">
+
+                                        {report.imageUrl ? (
+                                            <img
+                                                src={report.imageUrl}
+                                                alt={`Waste report ${report.report_code}`}
+                                                className="h-16 w-16 rounded-lg object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-xs text-gray-400">
+                                                No image
+                                            </div>
+                                        )}
+
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-gray-900">
+                                                {report.report_code}
+                                            </p>
+
+                                            <p className="mt-1 text-sm text-gray-500">
+                                                {report.description || "No description"}
+                                            </p>
+
+                                            <p className="mt-1 text-xs capitalize text-gray-500">
+                                                {report.status.replaceAll("_", " ")}
+                                            </p>
+                                        </div>
+
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedReport(report)}
+                                        className="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800"
+                                    >
+                                        View Details
+                                    </button>
+
+                                </div>
+
+                            ))}
+
+                        </div>
+
+                    </section>
+                )}
+
                 <Suspense
                     fallback={
                         <div className="mt-10 rounded-2xl bg-white p-8 text-center text-gray-500">
@@ -482,6 +582,7 @@ function AdminDashboard() {
                 >
                     <ReportsMap
                         reports={reports}
+                        selectedHotspot={selectedHotspot}
                         onViewDetails={(report) => setSelectedReport(report)}
                     />
                 </Suspense>

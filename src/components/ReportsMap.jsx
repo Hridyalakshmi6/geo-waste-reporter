@@ -92,7 +92,7 @@ function MapBounds({ reports }) {
 }
 
 
-function ReportsMap({ reports = [], onViewDetails }) {
+function ReportsMap({ reports = [], selectedHotspot, onViewDetails }) {
 
     // Validate report coordinates
     const validReports = useMemo(
@@ -117,7 +117,6 @@ function ReportsMap({ reports = [], onViewDetails }) {
         () => analyzeHotspots(validReports),
         [validReports]
     );
-    console.log("Detected hotspots:", hotspots);
     // Calculate initial map center
     const center = useMemo(() => {
         if (validReports.length === 0) {
@@ -180,30 +179,20 @@ function ReportsMap({ reports = [], onViewDetails }) {
                             <Circle
                                 key={hotspot.id}
                                 center={[hotspot.latitude, hotspot.longitude]}
-                                radius={250}
+                                radius={selectedHotspot?.id === hotspot.id ? 350 : 250}
                                 pathOptions={{
-                                    color,
+                                    color: selectedHotspot?.id === hotspot.id
+                                        ? "#16A34A"
+                                        : color,
                                     fillColor: color,
-                                    fillOpacity: 0.3,
-                                    weight: 2,
+                                    fillOpacity: selectedHotspot?.id === hotspot.id
+                                        ? 0.5
+                                        : 0.3,
+                                    weight: selectedHotspot?.id === hotspot.id
+                                        ? 4
+                                        : 2,
                                 }}
-                            >
-                                <Popup>
-                                    <div className="min-w-40">
-                                        <p className="font-bold text-gray-900">
-                                            Waste Hotspot
-                                        </p>
-
-                                        <p className="mt-1">
-                                            Reports: {hotspot.count}
-                                        </p>
-
-                                        <p className="mt-1">
-                                            Severity: {hotspot.severity}
-                                        </p>
-                                    </div>
-                                </Popup>
-                            </Circle>
+                            ></Circle>
                         );
                     })}
 
