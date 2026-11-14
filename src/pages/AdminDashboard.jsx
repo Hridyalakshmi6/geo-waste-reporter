@@ -29,6 +29,8 @@ function AdminDashboard() {
     const [loggingOut, setLoggingOut] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
     const [selectedReport, setSelectedReport] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
 
     const loadReports = useCallback(async () => {
         setLoading(true);
@@ -120,6 +122,19 @@ function AdminDashboard() {
             setLoggingOut(false);
         }
     }
+
+    // Filter reports by Report ID and status
+    const filteredReports = reports.filter((report) => {
+        const matchesSearch = report.report_code
+            .toLowerCase()
+            .includes(searchTerm.trim().toLowerCase());
+
+        const matchesStatus =
+            statusFilter === "all" ||
+            report.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+    });
 
     const totalReports = reports.length;
 
@@ -259,6 +274,72 @@ function AdminDashboard() {
                 {/* REPORTS TABLE */}
 
                 <section className="mt-10">
+                    {/* SEARCH AND FILTER CONTROLS */}
+
+                    <div className="mb-6 rounded-2xl bg-white p-5 shadow-sm">
+
+                        <div className="grid gap-4 md:grid-cols-2">
+
+                            {/* SEARCH BY REPORT ID */}
+
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Search by Report ID
+                                </label>
+
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(event) => setSearchTerm(event.target.value)}
+                                    placeholder="Enter Report ID..."
+                                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                                />
+                            </div>
+
+                            {/* FILTER BY STATUS */}
+
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Filter by Status
+                                </label>
+
+                                <select
+                                    value={statusFilter}
+                                    onChange={(event) => setStatusFilter(event.target.value)}
+                                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                                >
+                                    <option value="all">All Statuses</option>
+
+                                    {statusOptions.map((status) => (
+                                        <option key={status} value={status}>
+                                            {statusLabels[status]}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+
+                            <p className="text-sm text-gray-500">
+                                Showing {filteredReports.length} of {reports.length} reports
+                            </p>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchTerm("");
+                                    setStatusFilter("all");
+                                }}
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            >
+                                Clear Filters
+                            </button>
+
+                        </div>
+
+                    </div>
                     <div className="mb-5">
                         <h3 className="text-xl font-bold text-gray-800">
                             Recent Waste Reports
@@ -273,9 +354,9 @@ function AdminDashboard() {
                         <div className="rounded-2xl bg-white p-10 text-center text-gray-500">
                             Loading waste reports...
                         </div>
-                    ) : reports.length === 0 ? (
+                    ) : filteredReports.length === 0 ? (
                         <div className="rounded-2xl bg-white p-10 text-center text-gray-500">
-                            No waste reports have been submitted yet.
+                            No reports match your search or selected filters.
                         </div>
                     ) : (
                         <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
@@ -293,7 +374,7 @@ function AdminDashboard() {
                                 </thead>
 
                                 <tbody className="divide-y divide-gray-100">
-                                    {reports.map((report) => (
+                                    {filteredReports.map((report) => (
                                         <tr key={report.id}>
                                             <td className="p-4">
                                                 {report.imageUrl ? (
