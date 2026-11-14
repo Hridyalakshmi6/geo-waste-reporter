@@ -1,4 +1,5 @@
 
+import DashboardAnalytics from "../components/DashboardAnalytics";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -81,7 +82,11 @@ function AdminDashboard() {
     }, []);
 
     useEffect(() => {
-        loadReports();
+        const timer = setTimeout(() => {
+            loadReports();
+        }, 0);
+
+        return () => clearTimeout(timer);
     }, [loadReports]);
 
     async function handleStatusChange(reportId, newStatus) {
@@ -300,6 +305,8 @@ function AdminDashboard() {
                         ))}
                     </div>
                 </section>
+
+                <DashboardAnalytics reports={reports} />
 
                 <ReportsMap
                     reports={reports}
