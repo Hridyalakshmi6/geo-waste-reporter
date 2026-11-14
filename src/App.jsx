@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+
 import ReportPage from "./pages/ReportPage.jsx";
+import AdminLogin from "./pages/AdminLogin.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 const features = [
   {
@@ -64,16 +68,8 @@ const steps = [
   },
 ];
 
-function App() {
-  const [showReport, setShowReport] = useState(false);
-
-  if (showReport) {
-    return (
-      <ReportPage
-        onBack={() => setShowReport(false)}
-      />
-    );
-  }
+function HomePage() {
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-white text-gray-800">
@@ -99,7 +95,7 @@ function App() {
           </div>
 
           <button
-            onClick={() => setShowReport(true)}
+            onClick={() => navigate("/report")}
             className="rounded-xl bg-green-700 px-5 py-3 font-semibold text-white transition hover:bg-green-800"
           >
             Report Waste →
@@ -324,6 +320,37 @@ function App() {
       </footer>
 
     </div>
+  );
+}
+
+function ReportRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <ReportPage onBack={() => navigate("/")} />
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+
+        <Route path="/report" element={<ReportRoute />} />
+
+        <Route path="/admin/login" element={<AdminLogin />} />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
