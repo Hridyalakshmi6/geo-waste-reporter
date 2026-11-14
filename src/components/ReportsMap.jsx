@@ -1,4 +1,5 @@
 
+import { analyzeHotspots } from "../utils/hotspotAnalysis";
 import { useEffect, useMemo } from "react";
 import L from "leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -8,6 +9,7 @@ import {
     TileLayer,
     Marker,
     Popup,
+    Circle,
     useMap,
 } from "react-leaflet";
 
@@ -31,6 +33,11 @@ const statusColors = {
     assigned: "#2563EB",
     resolved: "#9333EA",
     rejected: "#DC2626",
+};
+
+const hotspotColors = {
+    Medium: "#F59E0B",
+    High: "#DC2626",
 };
 
 // Create custom Leaflet marker icons
@@ -106,6 +113,11 @@ function ReportsMap({ reports = [], onViewDetails }) {
         [reports]
     );
 
+    const hotspots = useMemo(
+        () => analyzeHotspots(validReports),
+        [validReports]
+    );
+    console.log("Detected hotspots:", hotspots);
     // Calculate initial map center
     const center = useMemo(() => {
         if (validReports.length === 0) {
@@ -160,6 +172,40 @@ function ReportsMap({ reports = [], onViewDetails }) {
                         maxZoom={20}
                     />
 
+                    {/* GEOAI HOTSPOT VISUALIZATION */}
+                    {hotspots.map((hotspot) => {
+                        const color = hotspotColors[hotspot.severity];
+
+                        return (
+                            <Circle
+                                key={hotspot.id}
+                                center={[hotspot.latitude, hotspot.longitude]}
+                                radius={250}
+                                pathOptions={{
+                                    color,
+                                    fillColor: color,
+                                    fillOpacity: 0.3,
+                                    weight: 2,
+                                }}
+                            >
+                                <Popup>
+                                    <div className="min-w-40">
+                                        <p className="font-bold text-gray-900">
+                                            Waste Hotspot
+                                        </p>
+
+                                        <p className="mt-1">
+                                            Reports: {hotspot.count}
+                                        </p>
+
+                                        <p className="mt-1">
+                                            Severity: {hotspot.severity}
+                                        </p>
+                                    </div>
+                                </Popup>
+                            </Circle>
+                        );
+                    })}
 
                     {/* CLUSTERED REPORT MARKERS */}
                     <MarkerClusterGroup
