@@ -1,8 +1,10 @@
 
+
 import { lazy, Suspense } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { analyzeHotspots } from "../utils/hotspotAnalysis";
 
 const DashboardAnalytics = lazy(
     () => import("../components/DashboardAnalytics")
@@ -183,6 +185,24 @@ function AdminDashboard() {
         );
     });
 
+    // GeoAI hotspot analysis
+    const hotspots = useMemo(
+        () => analyzeHotspots(reports),
+        [reports]
+    );
+
+    const totalHotspots = hotspots.length;
+
+    const highSeverityHotspots = hotspots.filter(
+        (hotspot) => hotspot.severity === "High"
+    ).length;
+
+    const mediumSeverityHotspots = hotspots.filter(
+        (hotspot) => hotspot.severity === "Medium"
+    ).length;
+
+    const highestHotspot = hotspots[0] || null;
+
     const totalReports = reports.length;
 
     const pendingReports = reports.filter(
@@ -322,6 +342,136 @@ function AdminDashboard() {
                 >
                     <DashboardAnalytics reports={reports} />
                 </Suspense>
+
+                {/* GEOAI HOTSPOT ANALYTICS */}
+                <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            GeoAI Hotspot Analytics
+                        </h2>
+
+                        <p className="mt-2 text-sm text-gray-500">
+                            Geographical analysis of waste report concentrations.
+                        </p>
+                    </div>
+
+                    {/* HOTSPOT SUMMARY CARDS */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+                        <div className="rounded-xl bg-gray-50 p-5">
+                            <p className="text-sm text-gray-500">
+                                Total Hotspots
+                            </p>
+                            <p className="mt-2 text-3xl font-bold text-gray-900">
+                                {loading ? "—" : totalHotspots}
+                            </p>
+                        </div>
+
+                        <div className="rounded-xl bg-red-50 p-5">
+                            <p className="text-sm text-red-700">
+                                High Severity
+                            </p>
+                            <p className="mt-2 text-3xl font-bold text-red-700">
+                                {loading ? "—" : highSeverityHotspots}
+                            </p>
+                        </div>
+
+                        <div className="rounded-xl bg-amber-50 p-5">
+                            <p className="text-sm text-amber-700">
+                                Medium Severity
+                            </p>
+                            <p className="mt-2 text-3xl font-bold text-amber-700">
+                                {loading ? "—" : mediumSeverityHotspots}
+                            </p>
+                        </div>
+
+                        <div className="rounded-xl bg-blue-50 p-5">
+                            <p className="text-sm text-blue-700">
+                                Highest Report Count
+                            </p>
+                            <p className="mt-2 text-3xl font-bold text-blue-700">
+                                {loading ? "—" : highestHotspot?.count ?? 0}
+                            </p>
+                        </div>
+
+                    </div>
+
+                    {/* DETECTED HOTSPOTS TABLE */}
+                    <div className="mt-8">
+
+                        <h3 className="mb-4 text-lg font-bold text-gray-800">
+                            Detected Hotspot Locations
+                        </h3>
+
+                        {loading ? (
+                            <p className="text-gray-500">
+                                Analyzing geographical report data...
+                            </p>
+                        ) : hotspots.length === 0 ? (
+                            <div className="rounded-xl bg-gray-50 p-6 text-center text-gray-500">
+                                No hotspots detected yet. At least three reports
+                                must fall within the same geographical grid cell.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[600px] text-left">
+
+                                    <thead className="bg-gray-50 text-sm text-gray-600">
+                                        <tr>
+                                            <th className="p-4">Rank</th>
+                                            <th className="p-4">Hotspot ID</th>
+                                            <th className="p-4">Reports</th>
+                                            <th className="p-4">Severity</th>
+                                            <th className="p-4">Coordinates</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody className="divide-y divide-gray-100">
+
+                                        {hotspots.map((hotspot, index) => (
+                                            <tr key={hotspot.id}>
+
+                                                <td className="p-4 font-semibold">
+                                                    #{index + 1}
+                                                </td>
+
+                                                <td className="p-4 text-sm text-gray-700">
+                                                    {hotspot.id}
+                                                </td>
+
+                                                <td className="p-4 font-bold text-gray-900">
+                                                    {hotspot.count}
+                                                </td>
+
+                                                <td className="p-4">
+                                                    <span
+                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${hotspot.severity === "High"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : "bg-amber-100 text-amber-700"
+                                                            }`}
+                                                    >
+                                                        {hotspot.severity}
+                                                    </span>
+                                                </td>
+
+                                                <td className="p-4 text-sm text-gray-600">
+                                                    {hotspot.latitude.toFixed(5)},
+                                                    {" "}
+                                                    {hotspot.longitude.toFixed(5)}
+                                                </td>
+
+                                            </tr>
+                                        ))}
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                    </div>
+
+                </section>
 
                 <Suspense
                     fallback={
