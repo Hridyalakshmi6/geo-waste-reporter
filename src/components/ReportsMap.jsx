@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo } from "react";
 import L from "leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 
 import {
     MapContainer,
@@ -159,44 +160,48 @@ function ReportsMap({ reports = [], onViewDetails }) {
                         maxZoom={20}
                     />
 
-                    {/* REPORT MARKERS */}
-                    {validReports.map((report) => (
-                        <Marker
-                            key={report.id}
-                            position={[
-                                Number(report.latitude),
-                                Number(report.longitude),
-                            ]}
-                            icon={createStatusIcon(report.status)}
-                        >
-                            <Popup>
-                                <div className="min-w-40">
 
-                                    <p className="font-bold text-gray-900">
-                                        {report.report_code}
-                                    </p>
+                    {/* CLUSTERED REPORT MARKERS */}
+                    <MarkerClusterGroup
+                        chunkedLoading
+                        showCoverageOnHover={false}
+                        spiderfyOnMaxZoom={true}
+                        removeOutsideVisibleBounds
+                    >
+                        {validReports.map((report) => (
+                            <Marker
+                                key={report.id}
+                                position={[
+                                    Number(report.latitude),
+                                    Number(report.longitude),
+                                ]}
+                                icon={createStatusIcon(report.status)}
+                            >
+                                <Popup>
+                                    <div className="min-w-40">
+                                        <p className="font-bold text-gray-900">
+                                            {report.report_code}
+                                        </p>
 
-                                    <p className="mt-1 text-sm capitalize">
-                                        Status:{" "}
-                                        {report.status.replaceAll("_", " ")}
-                                    </p>
+                                        <p className="mt-1 text-sm capitalize">
+                                            Status:{" "}
+                                            {report.status.replaceAll("_", " ")}
+                                        </p>
 
-                                    {onViewDetails && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                onViewDetails(report)
-                                            }
-                                            className="mt-2 rounded bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-                                        >
-                                            View Details
-                                        </button>
-                                    )}
-
-                                </div>
-                            </Popup>
-                        </Marker>
-                    ))}
+                                        {onViewDetails && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onViewDetails(report)}
+                                                className="mt-2 rounded bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                                            >
+                                                View Details
+                                            </button>
+                                        )}
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        ))}
+                    </MarkerClusterGroup>
 
                 </MapContainer>
 
