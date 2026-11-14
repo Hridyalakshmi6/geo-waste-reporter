@@ -13,3 +13,17 @@ body {
   min-width: 320px;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Fix Leaflet map tile positioning and image sizing */
+.leaflet-container {
+  overflow: hidden;
+}
+
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.leaflet-tile {
+  position: absolute !important;
+}

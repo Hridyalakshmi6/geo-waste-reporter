@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import ReportsMap from "../components/ReportsMap";
 
 const statusOptions = [
     "pending_verification",
@@ -249,6 +250,11 @@ function AdminDashboard() {
                         ))}
                     </div>
                 </section>
+
+                <ReportsMap
+                    reports={reports}
+                    onViewDetails={(report) => setSelectedReport(report)}
+                />
 
                 {/* REPORTS TABLE */}
 
