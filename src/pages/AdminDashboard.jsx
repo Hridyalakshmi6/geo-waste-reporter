@@ -27,6 +27,7 @@ function AdminDashboard() {
     const [error, setError] = useState("");
     const [loggingOut, setLoggingOut] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
+    const [selectedReport, setSelectedReport] = useState(null);
 
     const loadReports = useCallback(async () => {
         setLoading(true);
@@ -280,6 +281,8 @@ function AdminDashboard() {
                                         <th className="p-4">Location</th>
                                         <th className="p-4">Submitted</th>
                                         <th className="p-4">Status</th>
+                                        <th className="p-4">Details</th>
+                                        <th className="p-4">Actions</th>
                                     </tr>
                                 </thead>
 
@@ -353,7 +356,17 @@ function AdminDashboard() {
                                                     ))}
                                                 </select>
                                             </td>
+
+                                            <td className="p-4">
+                                                <button
+                                                    onClick={() => setSelectedReport(report)}
+                                                    className="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </td>
                                         </tr>
+
                                     ))}
                                 </tbody>
                             </table>
@@ -362,6 +375,108 @@ function AdminDashboard() {
                 </section>
 
             </div>
+
+            {/* REPORT DETAILS MODAL */}
+
+            {selectedReport && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+                    onClick={() => setSelectedReport(null)}
+                >
+                    <div
+                        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between gap-4">
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                Report Details
+                            </h2>
+
+                            <button
+                                onClick={() => setSelectedReport(null)}
+                                className="rounded-lg px-3 py-2 text-xl text-gray-500 hover:bg-gray-100"
+                                aria-label="Close report details"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {selectedReport.imageUrl && (
+                            <img
+                                src={selectedReport.imageUrl}
+                                alt="Reported waste"
+                                className="mt-5 max-h-72 w-full rounded-xl object-contain bg-gray-100"
+                            />
+                        )}
+
+                        <div className="mt-6 space-y-4">
+                            <div>
+                                <p className="text-sm text-gray-500">Report ID</p>
+                                <p className="font-semibold text-gray-900">
+                                    {selectedReport.report_code}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-sm text-gray-500">Description</p>
+                                <p className="text-gray-800">
+                                    {selectedReport.description || "No description provided"}
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-500">Latitude</p>
+                                    <p className="font-medium">
+                                        {selectedReport.latitude}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm text-gray-500">Longitude</p>
+                                    <p className="font-medium">
+                                        {selectedReport.longitude}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="text-sm text-gray-500">GPS Accuracy</p>
+                                <p className="font-medium">
+                                    {selectedReport.accuracy != null
+                                        ? `±${selectedReport.accuracy} metres`
+                                        : "Not available"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-sm text-gray-500">Submitted At</p>
+                                <p className="font-medium">
+                                    {new Date(
+                                        selectedReport.created_at
+                                    ).toLocaleString()}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-sm text-gray-500">Current Status</p>
+                                <p className="font-semibold text-green-700">
+                                    {statusLabels[selectedReport.status] ||
+                                        selectedReport.status}
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setSelectedReport(null)}
+                            className="mt-7 w-full rounded-xl bg-green-700 py-3 font-semibold text-white hover:bg-green-800"
+                        >
+                            Close Details
+                        </button>
+                    </div>
+                </div>
+            )}
+
         </main>
     );
 }

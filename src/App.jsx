@@ -129,7 +129,7 @@ function HomePage() {
 
             <div className="mt-8 flex flex-wrap gap-4">
               <button
-                onClick={() => setShowReport(true)}
+                onClick={() => navigate("/report")}
                 className="rounded-xl bg-green-700 px-7 py-4 font-bold text-white"
               >
                 Report Waste Now →
@@ -292,7 +292,7 @@ function HomePage() {
         </p>
 
         <button
-          onClick={() => setShowReport(true)}
+          onClick={() => navigate("/report")}
           className="mt-8 rounded-xl bg-white px-8 py-4 font-bold text-green-800"
         >
           Start Reporting →
