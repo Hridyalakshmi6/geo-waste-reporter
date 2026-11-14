@@ -1,9 +1,16 @@
 
-import DashboardAnalytics from "../components/DashboardAnalytics";
+import { lazy, Suspense } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import ReportsMap from "../components/ReportsMap";
+
+const DashboardAnalytics = lazy(
+    () => import("../components/DashboardAnalytics")
+);
+
+const ReportsMap = lazy(
+    () => import("../components/ReportsMap")
+);
 
 const statusOptions = [
     "pending_verification",
@@ -306,13 +313,28 @@ function AdminDashboard() {
                     </div>
                 </section>
 
-                <DashboardAnalytics reports={reports} />
+                <Suspense
+                    fallback={
+                        <div className="mt-10 rounded-2xl bg-white p-8 text-center text-gray-500">
+                            Loading analytics...
+                        </div>
+                    }
+                >
+                    <DashboardAnalytics reports={reports} />
+                </Suspense>
 
-                <ReportsMap
-                    reports={reports}
-                    onViewDetails={(report) => setSelectedReport(report)}
-                />
-
+                <Suspense
+                    fallback={
+                        <div className="mt-10 rounded-2xl bg-white p-8 text-center text-gray-500">
+                            Loading reports map...
+                        </div>
+                    }
+                >
+                    <ReportsMap
+                        reports={reports}
+                        onViewDetails={(report) => setSelectedReport(report)}
+                    />
+                </Suspense>
                 {/* REPORTS TABLE */}
 
                 <section className="mt-10">
