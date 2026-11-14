@@ -29,6 +29,8 @@ function AdminDashboard() {
     const [loggingOut, setLoggingOut] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
     const [selectedReport, setSelectedReport] = useState(null);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
 
@@ -124,6 +126,13 @@ function AdminDashboard() {
     }
 
     // Filter reports by Report ID and status
+    // Check whether the selected date range is valid
+    const invalidDateRange =
+        startDate !== "" &&
+        endDate !== "" &&
+        startDate > endDate;
+
+    // Filter reports by ID, status, and date range
     const filteredReports = reports.filter((report) => {
         const matchesSearch = report.report_code
             .toLowerCase()
@@ -133,7 +142,33 @@ function AdminDashboard() {
             statusFilter === "all" ||
             report.status === statusFilter;
 
-        return matchesSearch && matchesStatus;
+        const reportDate = new Date(report.created_at).getTime();
+
+        const startDateTime = startDate
+            ? new Date(`${startDate}T00:00:00`).getTime()
+            : null;
+
+        // Exclusive upper boundary includes the entire end date
+        const endDateTime = endDate
+            ? new Date(`${endDate}T00:00:00`).getTime() +
+            24 * 60 * 60 * 1000
+            : null;
+
+        const matchesStartDate =
+            startDateTime === null ||
+            reportDate >= startDateTime;
+
+        const matchesEndDate =
+            endDateTime === null ||
+            reportDate < endDateTime;
+
+        return (
+            !invalidDateRange &&
+            matchesSearch &&
+            matchesStatus &&
+            matchesStartDate &&
+            matchesEndDate
+        );
     });
 
     const totalReports = reports.length;
@@ -278,7 +313,37 @@ function AdminDashboard() {
 
                     <div className="mb-6 rounded-2xl bg-white p-5 shadow-sm">
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+                            {/* FILTER BY START DATE */}
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Start Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    max={endDate || undefined}
+                                    onChange={(event) => setStartDate(event.target.value)}
+                                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                                />
+                            </div>
+
+                            {/* FILTER BY END DATE */}
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    End Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    min={startDate || undefined}
+                                    onChange={(event) => setEndDate(event.target.value)}
+                                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                                />
+                            </div>
 
                             {/* SEARCH BY REPORT ID */}
 
@@ -320,6 +385,12 @@ function AdminDashboard() {
 
                         </div>
 
+                        {invalidDateRange && (
+                            <p className="mt-3 text-sm font-medium text-red-600">
+                                End Date cannot be earlier than Start Date.
+                            </p>
+                        )}
+
                         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
 
                             <p className="text-sm text-gray-500">
@@ -331,6 +402,8 @@ function AdminDashboard() {
                                 onClick={() => {
                                     setSearchTerm("");
                                     setStatusFilter("all");
+                                    setStartDate("");
+                                    setEndDate("");
                                 }}
                                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                             >
