@@ -1,9 +1,19 @@
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useNavigate,
+} from "react-router-dom";
+
+import { lazy, Suspense } from "react";
 
 import ReportPage from "./pages/ReportPage.jsx";
 import AdminLogin from "./pages/AdminLogin.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+
+const AdminDashboard = lazy(
+  () => import("./pages/AdminDashboard.jsx")
+);
 
 const features = [
   {
@@ -345,7 +355,17 @@ function App() {
           path="/admin/dashboard"
           element={
             <ProtectedRoute>
-              <AdminDashboard />
+              <Suspense
+                fallback={
+                  <div className="flex min-h-screen items-center justify-center bg-gray-100">
+                    <p className="text-lg font-semibold text-green-800">
+                      Loading Admin Dashboard...
+                    </p>
+                  </div>
+                }
+              >
+                <AdminDashboard />
+              </Suspense>
             </ProtectedRoute>
           }
         />
