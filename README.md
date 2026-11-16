@@ -1,6 +1,8 @@
 
 # Geo-Waste Reporter
 
+**Live Demo:** [https://elaborate-vacherin-5eb943.netlify.app/](https://elaborate-vacherin-5eb943.netlify.app/)
+
 A GeoAI-powered platform for reporting and monitoring illegal waste dumping.
 
 ## About the Project
