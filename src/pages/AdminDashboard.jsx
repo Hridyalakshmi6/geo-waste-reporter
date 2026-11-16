@@ -1,5 +1,5 @@
 
-
+import { normalizeHistoricalReports } from "../utils/hotspotTrends.js";
 import { lazy, Suspense } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,10 @@ import { analyzeHotspots } from "../utils/hotspotAnalysis";
 
 const DashboardAnalytics = lazy(
     () => import("../components/DashboardAnalytics")
+);
+
+const HistoricalTrendAnalytics = lazy(
+    () => import("../components/HistoricalTrendAnalytics")
 );
 
 const ReportsMap = lazy(
@@ -30,6 +34,37 @@ const statusLabels = {
     rejected: "Rejected",
 };
 
+
+// Fetch all rows from a Supabase table in pages of 1,000.
+async function fetchAllHistoricalRows(tableName, columns) {
+    const PAGE_SIZE = 1000;
+    let offset = 0;
+    const allRows = [];
+
+    while (true) {
+        const { data, error } = await supabase
+            .from(tableName)
+            .select(columns)
+            .order("observation_date", { ascending: true })
+            .range(offset, offset + PAGE_SIZE - 1);
+
+        if (error) {
+            throw error;
+        }
+
+        const rows = data || [];
+        allRows.push(...rows);
+
+        if (rows.length < PAGE_SIZE) {
+            break;
+        }
+
+        offset += PAGE_SIZE;
+    }
+
+    return allRows;
+}
+
 function AdminDashboard() {
     const navigate = useNavigate();
 
@@ -44,6 +79,20 @@ function AdminDashboard() {
     const [endDate, setEndDate] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+
+    // Historical data sources
+    const [publicHistoricalReports, setPublicHistoricalReports] = useState([]);
+    const [syntheticHistoricalReports, setSyntheticHistoricalReports] = useState([]);
+
+    const [historicalLoading, setHistoricalLoading] = useState(true);
+
+    const [historicalErrors, setHistoricalErrors] = useState({
+        public: "",
+        synthetic: "",
+    });
+
+    // Historical analytics source filter
+    const [historicalSource, setHistoricalSource] = useState("all");
 
     const loadReports = useCallback(async () => {
         setLoading(true);
@@ -98,6 +147,69 @@ function AdminDashboard() {
 
         return () => clearTimeout(timer);
     }, [loadReports]);
+
+
+    // Load public and synthetic historical datasets independently.
+    useEffect(() => {
+        let isActive = true;
+
+        async function loadHistoricalData() {
+            setHistoricalLoading(true);
+
+            const [publicResult, syntheticResult] =
+                await Promise.allSettled([
+                    fetchAllHistoricalRows(
+                        "public_historical_reports",
+                        "id, source_record_id, observation_date, latitude, longitude"
+                    ),
+                    fetchAllHistoricalRows(
+                        "synthetic_historical_reports",
+                        "id, source_record_id, observation_date, latitude, longitude"
+                    ),
+                ]);
+
+            if (!isActive) return;
+
+            if (publicResult.status === "fulfilled") {
+                setPublicHistoricalReports(publicResult.value);
+            } else {
+                console.error(
+                    "Public historical data loading failed:",
+                    publicResult.reason
+                );
+
+                setHistoricalErrors((previous) => ({
+                    ...previous,
+                    public: publicResult.reason?.message ||
+                        "Unable to load public historical data.",
+                }));
+            }
+
+            if (syntheticResult.status === "fulfilled") {
+                setSyntheticHistoricalReports(syntheticResult.value);
+            } else {
+                console.error(
+                    "Synthetic historical data loading failed:",
+                    syntheticResult.reason
+                );
+
+                setHistoricalErrors((previous) => ({
+                    ...previous,
+                    synthetic: syntheticResult.reason?.message ||
+                        "Unable to load synthetic historical data.",
+                }));
+            }
+
+            setHistoricalLoading(false);
+        }
+
+        loadHistoricalData();
+
+        return () => {
+            isActive = false;
+        };
+    }, []);
+
 
     async function handleStatusChange(reportId, newStatus) {
         setUpdatingId(reportId);
@@ -191,6 +303,34 @@ function AdminDashboard() {
         () => analyzeHotspots(reports),
         [reports]
     );
+
+
+    // Normalize citizen, public and synthetic records for historical analytics.
+    const normalizedHistoricalReports = useMemo(
+        () =>
+            normalizeHistoricalReports({
+                citizenReports: reports,
+                publicReports: publicHistoricalReports,
+                syntheticReports: syntheticHistoricalReports,
+            }),
+        [reports, publicHistoricalReports, syntheticHistoricalReports]
+    );
+
+    // Apply the selected historical source filter.
+    const filteredHistoricalReports = useMemo(
+        () =>
+            historicalSource === "all"
+                ? normalizedHistoricalReports
+                : normalizedHistoricalReports.filter(
+                    (report) => report.source === historicalSource
+                ),
+        [normalizedHistoricalReports, historicalSource]
+    );
+
+    <p className="mb-4 text-sm text-gray-500">
+        Showing {filteredHistoricalReports.length} historical records.
+    </p>
+
 
     const totalHotspots = hotspots.length;
 
@@ -291,6 +431,31 @@ function AdminDashboard() {
                     </div>
                 )}
 
+                {historicalLoading && (
+                    <p className="mt-4 text-sm text-gray-500">
+                        Loading public and synthetic historical datasets...
+                    </p>
+                )}
+
+                {(historicalErrors.public || historicalErrors.synthetic) && (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                        <p className="font-semibold">
+                            Some historical data could not be loaded.
+                        </p>
+
+                        {historicalErrors.public && (
+                            <p className="mt-2">
+                                Public dataset: {historicalErrors.public}
+                            </p>
+                        )}
+
+                        {historicalErrors.synthetic && (
+                            <p className="mt-2">
+                                Synthetic dataset: {historicalErrors.synthetic}
+                            </p>
+                        )}
+                    </div>
+                )}
                 {/* STATISTICS */}
 
                 <section className="mt-8">
@@ -344,9 +509,44 @@ function AdminDashboard() {
                     <DashboardAnalytics reports={reports} />
                 </Suspense>
 
+                <Suspense
+                    fallback={
+                        <p className="p-4 text-gray-500">
+                            Loading historical trend analytics...
+                        </p>
+                    }
+                >
+                    <HistoricalTrendAnalytics
+                        reports={filteredHistoricalReports}
+                        loading={historicalLoading}
+                    />
+                </Suspense>
                 {/* GEOAI HOTSPOT ANALYTICS */}
                 <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 
+
+                    <div className="mb-6">
+                        <label className="mb-2 block text-sm font-semibold text-gray-700">
+                            Historical Data Source
+                        </label>
+
+                        <select
+                            value={historicalSource}
+                            onChange={(event) => setHistoricalSource(event.target.value)}
+                            className="w-full max-w-sm rounded-xl border border-gray-300 px-4 py-3"
+                        >
+                            <option value="all">All Sources</option>
+                            <option value="citizen">Citizen Reports</option>
+                            <option value="public">Public Dataset</option>
+                            <option value="synthetic">Synthetic Dataset</option>
+                        </select>
+                    </div>
+
+                    <p className="mt-2 text-sm text-gray-600">
+                        {historicalLoading
+                            ? "Loading historical records..."
+                            : `Records loaded: ${filteredHistoricalReports.length}`}
+                    </p>
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-gray-900">
                             GeoAI Hotspot Analytics
@@ -430,7 +630,8 @@ function AdminDashboard() {
 
                                     <tbody className="divide-y divide-gray-100">
 
-                                        {hotspots.map((hotspot) => (
+
+                                        {hotspots.map((hotspot, index) => (
                                             <tr
                                                 key={hotspot.id}
                                                 onClick={() => setSelectedHotspot(hotspot)}
@@ -438,8 +639,18 @@ function AdminDashboard() {
                                                     ? "bg-green-50"
                                                     : "hover:bg-gray-50"
                                                     }`}
-                                            ></tr>
+                                            >
+                                                <td className="p-4">{index + 1}</td>
+                                                <td className="p-4 font-medium">{hotspot.id}</td>
+                                                <td className="p-4">{hotspot.count}</td>
+                                                <td className="p-4">{hotspot.severity}</td>
+                                                <td className="p-4">
+                                                    {hotspot.latitude.toFixed(5)},{" "}
+                                                    {hotspot.longitude.toFixed(5)}
+                                                </td>
+                                            </tr>
                                         ))}
+
 
                                     </tbody>
                                 </table>

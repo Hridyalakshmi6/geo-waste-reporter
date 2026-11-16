@@ -4,50 +4,70 @@ const GRID_SIZE_KM = 0.5;
 // Approximate conversion from kilometres to degrees.
 const KM_PER_DEGREE_LATITUDE = 111.32;
 
-export function analyzeHotspots(reports) {
-    const validReports = reports.filter((report) => {
-        const latitude = Number(report.latitude);
-        const longitude = Number(report.longitude);
+/**
+ * Returns the geographic grid-cell ID for a location.
+ * Returns null if the coordinates are invalid.
+ */
+export function getGridCellId(latitude, longitude) {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
 
-        return (
-            Number.isFinite(latitude) &&
-            Number.isFinite(longitude) &&
-            latitude >= -90 &&
-            latitude <= 90 &&
-            longitude >= -180 &&
-            longitude <= 180
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lon) ||
+        lat < -90 ||
+        lat > 90 ||
+        lon < -180 ||
+        lon > 180
+    ) {
+        return null;
+    }
+
+    const latitudeStep =
+        GRID_SIZE_KM / KM_PER_DEGREE_LATITUDE;
+
+    const longitudeStep =
+        GRID_SIZE_KM /
+        (
+            KM_PER_DEGREE_LATITUDE *
+            Math.max(
+                Math.abs(Math.cos(lat * Math.PI / 180)),
+                0.01
+            )
         );
-    });
 
+    const row = Math.floor(lat / latitudeStep);
+    const column = Math.floor(lon / longitudeStep);
+
+    return `${row}:${column}`;
+}
+
+/**
+ * Groups reports into geographic hotspot cells.
+ */
+export function analyzeHotspots(reports) {
     const cells = new Map();
 
-    validReports.forEach((report) => {
+    reports.forEach((report) => {
         const latitude = Number(report.latitude);
         const longitude = Number(report.longitude);
 
-        const latitudeStep =
-            GRID_SIZE_KM / KM_PER_DEGREE_LATITUDE;
+        const cellId = getGridCellId(latitude, longitude);
 
-        const longitudeStep =
-            GRID_SIZE_KM /
-            (KM_PER_DEGREE_LATITUDE *
-                Math.max(Math.abs(Math.cos(latitude * Math.PI / 180)), 0.01));
+        if (cellId === null) {
+            return;
+        }
 
-        const row = Math.floor(latitude / latitudeStep);
-        const column = Math.floor(longitude / longitudeStep);
-
-        const key = `${row}:${column}`;
-
-        if (!cells.has(key)) {
-            cells.set(key, {
-                id: key,
+        if (!cells.has(cellId)) {
+            cells.set(cellId, {
+                id: cellId,
                 reports: [],
                 latitudeTotal: 0,
                 longitudeTotal: 0,
             });
         }
 
-        const cell = cells.get(key);
+        const cell = cells.get(cellId);
 
         cell.reports.push(report);
         cell.latitudeTotal += latitude;
