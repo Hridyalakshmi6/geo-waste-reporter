@@ -18,6 +18,14 @@ const ReportsMap = lazy(
     () => import("../components/ReportsMap")
 );
 
+const DuplicateReportsReview = lazy(
+    () => import("../components/DuplicateReportsReview")
+);
+
+const RecurringIncidentsManagement = lazy(
+    () => import("../components/RecurringIncidentsManagement")
+);
+
 const statusOptions = [
     "pending_verification",
     "verified",
@@ -327,11 +335,6 @@ function AdminDashboard() {
         [normalizedHistoricalReports, historicalSource]
     );
 
-    <p className="mb-4 text-sm text-gray-500">
-        Showing {filteredHistoricalReports.length} historical records.
-    </p>
-
-
     const totalHotspots = hotspots.length;
 
     const highSeverityHotspots = hotspots.filter(
@@ -507,6 +510,26 @@ function AdminDashboard() {
                     }
                 >
                     <DashboardAnalytics reports={reports} />
+                </Suspense>
+
+                <Suspense
+                    fallback={
+                        <div className="mt-10 rounded-2xl bg-white p-8 text-center text-gray-500">
+                            Loading duplicate reports review...
+                        </div>
+                    }
+                >
+                    <DuplicateReportsReview />
+                </Suspense>
+
+                <Suspense
+                    fallback={
+                        <div className="mt-10 rounded-2xl bg-white p-8 text-center text-gray-500">
+                            Loading recurring incident management...
+                        </div>
+                    }
+                >
+                    <RecurringIncidentsManagement />
                 </Suspense>
 
                 <Suspense
