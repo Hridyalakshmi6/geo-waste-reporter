@@ -1,0 +1,74 @@
+﻿CREATE OR REPLACE FUNCTION public.detect_report_duplicates()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'public'
+AS $function$
+BEGIN
+    INSERT INTO public.report_duplicate_candidates (
+        report_id,
+        candidate_report_id,
+        distance_meters,
+        time_difference_hours
+    )
+    SELECT
+        NEW.id,
+        existing.id,
+        distance_calc.distance_meters,
+        ABS(
+            EXTRACT(
+                EPOCH FROM (NEW.created_at - existing.created_at)
+            )
+        ) / 3600.0
+    FROM public.reports AS existing
+
+    CROSS JOIN LATERAL (
+        SELECT
+            6371000.0 * 2.0 * ASIN(
+                SQRT(
+                    LEAST(
+                        1.0,
+                        GREATEST(
+                            0.0,
+                            POWER(
+                                SIN(
+                                    RADIANS(
+                                        NEW.latitude - existing.latitude
+                                    ) / 2.0
+                                ),
+                                2
+                            )
+                            +
+                            COS(RADIANS(NEW.latitude))
+                            * COS(RADIANS(existing.latitude))
+                            * POWER(
+                                SIN(
+                                    RADIANS(
+                                        NEW.longitude - existing.longitude
+                                    ) / 2.0
+                                ),
+                                2
+                            )
+                        )
+                    )
+                )
+            ) AS distance_meters
+    ) AS distance_calc
+
+    WHERE existing.id <> NEW.id
+
+      AND ABS(
+          EXTRACT(
+              EPOCH FROM (NEW.created_at - existing.created_at)
+          )
+      ) <= 86400
+
+      AND distance_calc.distance_meters <= 100
+
+    ON CONFLICT (report_id, candidate_report_id)
+    DO NOTHING;
+
+    RETURN NEW;
+END;
+$function$
+

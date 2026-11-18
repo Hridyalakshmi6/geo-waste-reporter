@@ -1,0 +1,105 @@
+﻿CREATE OR REPLACE FUNCTION public.review_recurring_incident_candidate(p_candidate_id uuid, p_review_status text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'public'
+AS $function$
+DECLARE
+    v_candidate public.recurring_incident_candidates%ROWTYPE;
+    v_incident public.recurring_incidents%ROWTYPE;
+    v_admin_id UUID;
+BEGIN
+    -- Verify the authenticated administrator.
+    v_admin_id := auth.uid();
+
+    IF v_admin_id IS NULL OR NOT EXISTS (
+        SELECT 1
+        FROM public.admin_users
+        WHERE user_id = v_admin_id
+    ) THEN
+        RAISE EXCEPTION 'Administrator access required';
+    END IF;
+
+    -- Validate the requested action.
+    IF p_review_status NOT IN ('linked', 'rejected') THEN
+        RAISE EXCEPTION 'Invalid review status';
+    END IF;
+
+    -- Lock the candidate to prevent simultaneous reviews.
+    SELECT *
+    INTO v_candidate
+    FROM public.recurring_incident_candidates
+    WHERE id = p_candidate_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Incident candidate not found';
+    END IF;
+
+    IF v_candidate.review_status <> 'pending_review' THEN
+        RAISE EXCEPTION 'Candidate has already been reviewed';
+    END IF;
+
+    -- Lock the incident.
+    SELECT *
+    INTO v_incident
+    FROM public.recurring_incidents
+    WHERE id = v_candidate.incident_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Incident not found';
+    END IF;
+
+    IF p_review_status = 'linked' THEN
+
+        IF v_incident.status <> 'open' THEN
+            RAISE EXCEPTION 'Cannot link a report to a resolved incident';
+        END IF;
+
+        -- Prevent a report from belonging to another incident.
+        INSERT INTO public.recurring_incident_reports (
+            incident_id,
+            report_id,
+            linked_by
+        )
+        VALUES (
+            v_candidate.incident_id,
+            v_candidate.report_id,
+            v_admin_id
+        );
+
+        -- Update the latest report timestamp.
+        UPDATE public.recurring_incidents
+        SET
+            last_reported_at = GREATEST(
+                last_reported_at,
+                (
+                    SELECT created_at
+                    FROM public.reports
+                    WHERE id = v_candidate.report_id
+                )
+            ),
+            updated_at = NOW()
+        WHERE id = v_candidate.incident_id;
+
+    END IF;
+
+    -- Record the administrator's decision.
+    UPDATE public.recurring_incident_candidates
+    SET
+        review_status = p_review_status,
+        reviewed_by = v_admin_id,
+        reviewed_at = NOW()
+    WHERE id = p_candidate_id;
+
+    RETURN jsonb_build_object(
+        'success', TRUE,
+        'candidate_id', p_candidate_id,
+        'incident_id', v_candidate.incident_id,
+        'report_id', v_candidate.report_id,
+        'review_status', p_review_status
+    );
+END;
+$function$
+

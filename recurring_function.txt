@@ -1,0 +1,130 @@
+﻿CREATE OR REPLACE FUNCTION public.detect_recurring_incidents()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'public'
+AS $function$
+DECLARE
+    matching_count INTEGER;
+    new_incident_id UUID;
+    new_incident_code TEXT;
+BEGIN
+
+    -- Find open incidents within 100 metres
+    -- whose latest linked report is within 7 days.
+
+    INSERT INTO public.recurring_incident_candidates (
+        incident_id,
+        report_id,
+        distance_meters,
+        time_difference_hours
+    )
+    SELECT
+        incident.id,
+        NEW.id,
+        distance_calc.distance_meters,
+        EXTRACT(
+            EPOCH FROM (
+                NEW.created_at - incident.last_reported_at
+            )
+        ) / 3600.0
+
+    FROM public.recurring_incidents AS incident
+
+    CROSS JOIN LATERAL (
+        SELECT
+            6371000.0 * 2.0 * ASIN(
+                SQRT(
+                    LEAST(
+                        1.0,
+                        GREATEST(
+                            0.0,
+                            POWER(
+                                SIN(
+                                    RADIANS(
+                                        NEW.latitude - incident.latitude
+                                    ) / 2.0
+                                ),
+                                2
+                            )
+                            +
+                            COS(RADIANS(NEW.latitude))
+                            * COS(RADIANS(incident.latitude))
+                            * POWER(
+                                SIN(
+                                    RADIANS(
+                                        NEW.longitude - incident.longitude
+                                    ) / 2.0
+                                ),
+                                2
+                            )
+                        )
+                    )
+                )
+            ) AS distance_meters
+    ) AS distance_calc
+
+    WHERE incident.status = 'open'
+
+      AND NEW.created_at >= incident.last_reported_at
+
+      AND NEW.created_at <=
+          incident.last_reported_at + INTERVAL '7 days'
+
+      AND distance_calc.distance_meters <= 100
+
+    ON CONFLICT (incident_id, report_id)
+    DO NOTHING;
+
+    GET DIAGNOSTICS matching_count = ROW_COUNT;
+
+    -- If no open incident matches, create a new incident.
+    -- Automatically link its first report.
+
+    IF matching_count = 0 THEN
+
+        new_incident_id := gen_random_uuid();
+
+        new_incident_code :=
+            'INC-' ||
+            TO_CHAR(NEW.created_at, 'YYYYMMDD') ||
+            '-' ||
+            UPPER(SUBSTRING(
+                REPLACE(new_incident_id::TEXT, '-', '')
+                FROM 1 FOR 8
+            ));
+
+        INSERT INTO public.recurring_incidents (
+            id,
+            incident_code,
+            latitude,
+            longitude,
+            status,
+            first_reported_at,
+            last_reported_at
+        )
+        VALUES (
+            new_incident_id,
+            new_incident_code,
+            NEW.latitude,
+            NEW.longitude,
+            'open',
+            NEW.created_at,
+            NEW.created_at
+        );
+
+        INSERT INTO public.recurring_incident_reports (
+            incident_id,
+            report_id
+        )
+        VALUES (
+            new_incident_id,
+            NEW.id
+        );
+
+    END IF;
+
+    RETURN NEW;
+END;
+$function$
+
