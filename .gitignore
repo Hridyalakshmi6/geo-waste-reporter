@@ -29,3 +29,11 @@ dist/
 .env
 .env.*
 !.env.example
+
+
+# Supabase temporary files
+supabase/.temp/
+
+# Local development secrets
+*.pem
+*.key
