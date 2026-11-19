@@ -1,6 +1,7 @@
 
 import { analyzeHotspots } from "../utils/hotspotAnalysis";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import HeatLayer from "./HeatLayer";
 import L from "leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 
@@ -94,6 +95,8 @@ function MapBounds({ reports }) {
 
 function ReportsMap({ reports = [], selectedHotspot, onViewDetails }) {
 
+    const [showHeat, setShowHeat] = useState(false);
+
     // Validate report coordinates
     const validReports = useMemo(
         () =>
@@ -111,6 +114,16 @@ function ReportsMap({ reports = [], selectedHotspot, onViewDetails }) {
                 );
             }),
         [reports]
+    );
+
+    const heatPoints = useMemo(
+        () =>
+            validReports.map((report) => [
+                Number(report.latitude),
+                Number(report.longitude),
+                1,
+            ]),
+        [validReports]
     );
 
     const hotspots = useMemo(
@@ -143,16 +156,30 @@ function ReportsMap({ reports = [], selectedHotspot, onViewDetails }) {
         <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
 
             {/* MAP HEADER */}
-            <div className="mb-4">
-                <h2 className="text-xl font-bold text-gray-900">
-                    Waste Reports Map
-                </h2>
+            {/* MAP HEADER */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                        Waste Reports Map
+                    </h2>
 
-                <p className="mt-1 text-sm text-gray-500">
-                    Locations of submitted waste reports
-                </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Locations of submitted waste reports
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => setShowHeat((previous) => !previous)}
+                    aria-pressed={showHeat}
+                    className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${showHeat
+                        ? "bg-orange-600 text-white hover:bg-orange-700"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                        }`}
+                >
+                    {showHeat ? "Hide Heatmap" : "Show Heatmap"}
+                </button>
             </div>
-
             {/* MAP */}
             <div className="overflow-hidden rounded-xl">
 
@@ -170,6 +197,11 @@ function ReportsMap({ reports = [], selectedHotspot, onViewDetails }) {
                         subdomains={["a", "b", "c", "d"]}
                         maxZoom={20}
                     />
+
+                    {/* HEATMAP LAYER */}
+                    {showHeat && (
+                        <HeatLayer points={heatPoints} />
+                    )}
 
                     {/* GEOAI HOTSPOT VISUALIZATION */}
                     {hotspots.map((hotspot) => {
