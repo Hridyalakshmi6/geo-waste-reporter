@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { analyzeHotspots } from "../utils/hotspotAnalysis";
+import { getCategoryLabel } from "../lib/categories";
 
 const DashboardAnalytics = lazy(
     () => import("../components/DashboardAnalytics")
@@ -110,7 +111,7 @@ function AdminDashboard() {
             const { data, error: fetchError } = await supabase
                 .from("reports")
                 .select(
-                    "id, report_code, image_path, latitude, longitude, accuracy, description, status, created_at"
+                    "id, report_code, image_path, latitude, longitude, accuracy, description, category, status, created_at"
                 )
                 .order("created_at", { ascending: false });
 
@@ -779,6 +780,10 @@ function AdminDashboard() {
                                                 {report.report_code}
                                             </p>
 
+                                            <p className="mt-1 text-xs font-medium text-green-700">
+                                                {getCategoryLabel(report.category)}
+                                            </p>
+
                                             <p className="mt-1 text-sm text-gray-500">
                                                 {report.description || "No description"}
                                             </p>
@@ -1088,6 +1093,13 @@ function AdminDashboard() {
                                 <p className="text-sm text-gray-500">Report ID</p>
                                 <p className="font-semibold text-gray-900">
                                     {selectedReport.report_code}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-sm text-gray-500">Category</p>
+                                <p className="text-gray-800">
+                                    {getCategoryLabel(selectedReport.category)}
                                 </p>
                             </div>
 

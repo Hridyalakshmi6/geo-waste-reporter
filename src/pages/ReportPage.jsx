@@ -1,6 +1,7 @@
 
 import { useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { CATEGORIES } from "../lib/categories";
 
 function ReportPage({ onBack }) {
     const fileInputRef = useRef(null);
@@ -11,6 +12,7 @@ function ReportPage({ onBack }) {
     const [locationStatus, setLocationStatus] = useState("Waiting for photo");
     const [loadingLocation, setLoadingLocation] = useState(false);
     const [description, setDescription] = useState("");
+    const [category, setCategory] = useState(""); // New state for category
     const [submittedReport, setSubmittedReport] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionError, setSubmissionError] = useState("");
@@ -96,11 +98,15 @@ function ReportPage({ onBack }) {
             return;
         }
 
+        if (!category) {
+            setSubmissionError("Please select a waste category.");
+            return;
+        }
+
         if (!navigator.onLine) {
             setSubmissionError("Please check your internet connection.");
             return;
         }
-
         setIsSubmitting(true);
         setSubmissionError("");
 
@@ -167,6 +173,7 @@ function ReportPage({ onBack }) {
                     longitude: location.longitude,
                     accuracy: location.accuracy,
                     description: description.trim() || null,
+                    category,
                 });
 
             if (databaseError) {
@@ -373,12 +380,34 @@ function ReportPage({ onBack }) {
 
                             </div>
                         </section>
+                        {/* CATEGORY */}
+
+                        <section>
+                            <h2 className="mb-3 font-bold text-gray-800">
+                                3. Waste Category *
+                            </h2>
+
+                            <select
+                                value={category}
+                                onChange={(event) => setCategory(event.target.value)}
+                                required
+                                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                            >
+                                <option value="">Select a category...</option>
+
+                                {CATEGORIES.map((item) => (
+                                    <option key={item.value} value={item.value}>
+                                        {item.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </section>
 
                         {/* DESCRIPTION */}
 
                         <section>
                             <h2 className="mb-3 font-bold text-gray-800">
-                                3. Additional Description (Optional)
+                                4. Additional Description (Optional)
                             </h2>
 
                             <textarea
@@ -405,6 +434,7 @@ function ReportPage({ onBack }) {
                             disabled={
                                 !photo ||
                                 !location ||
+                                !category ||
                                 loadingLocation ||
                                 isSubmitting
                             }
