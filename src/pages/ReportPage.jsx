@@ -143,12 +143,6 @@ function ReportPage({ onBack }) {
             const imagePath =
                 `reports/${reportCode}/${crypto.randomUUID()}.${extension}`;
 
-            // 4. Upload the actual photograph to Supabase Storage
-
-            console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
-            console.log("Bucket name:", "waste-images");
-            console.log("Image path:", imagePath);
-            console.log("Image type:", photo.type);
 
             const { error: uploadError } = await supabase.storage
                 .from("waste-images")
